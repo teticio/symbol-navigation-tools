@@ -12,25 +12,39 @@ For example if there is an image subfolder under your extension project workspac
 
 > Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
 
-### Language Model Tool: Tab Count
+### Language Model Tool: Go To Definition
 
 This extension contributes a language model tool that Copilot can call in agent mode:
 
-- Name: `chat-tools-sample_tabCount`
-- Reference name: `#tabCount`
-- Purpose: Count the number of open tabs. Optionally accepts a 1-based `tabGroup` parameter; otherwise uses the active group.
+- Name: `go-to-definition`
+- Reference name: `#goToDefinition`
+- Purpose: Given a symbol and a file URI, finds the first exact occurrence of the symbol within optional line bounds, then returns where that symbol is defined.
 
 Use it in chat by referencing the tool:
 
 ```text
-#tabCount — How many tabs are open?
+#goToDefinition — Find the definition of "foo" in src/index.ts (lines 1–200)
 ```
 
-Or with a parameter:
+Or with parameters:
 
 ```json
-{ "tool": "#tabCount", "arguments": { "tabGroup": 2 } }
+{
+    "tool": "#goToDefinition",
+    "arguments": {
+        "symbol": "foo",
+        "uri": "src/index.ts",
+        "startLineNumber": 1,
+        "endLineNumber": 200
+    }
+}
 ```
+
+Notes:
+
+- `uri` can be a workspace-relative path (e.g., `src/index.ts`), an absolute path (`/home/user/project/src/index.ts`), or a full URI (`file:///...`).
+- `startLineNumber` and `endLineNumber` are 1-based and inclusive.
+- Results are shown as `path:line` or `path:start-end` when the range spans multiple lines.
 
 ## Requirements
 
