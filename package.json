@@ -1,0 +1,75 @@
+{
+  "name": "go-to-definition-tool",
+  "displayName": "Go To Definition Tool",
+  "description": "Tool to enable LLMs to navigate your codebase and modules / packages more effectively.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.102.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languageModelTools": [
+      {
+        "name": "go-to-definition",
+        "tags": [
+          "symbol", "module", "package"
+        ],
+        "toolReferenceName": "goToDefinition",
+        "displayName": "Go To Definition",
+        "modelDescription": "Navigate to the definition of a symbol in the codebase and installed modules / packages.",
+        "userDescription": "Find the definition of a symbol in the codebase and installed modules / packages.",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(files)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string",
+              "description": "The symbol to find the definition for."
+            },
+            "uri": {
+              "type": "string",
+              "description": "The URI of the document to search."
+            },
+            "startLineNumber": {
+              "type": "number",
+              "description": "The starting line number to search (1-based).",
+              "optional": true
+            },
+            "endLineNumber": {
+              "type": "number",
+              "description": "The ending line number to search (1-based).",
+              "optional": true
+            }
+          }
+        }
+      }
+    ],
+    "commands": []
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.102.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@typescript-eslint/eslint-plugin": "^8.39.0",
+    "@typescript-eslint/parser": "^8.39.0",
+    "eslint": "^9.32.0",
+    "typescript": "^5.9.2",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
