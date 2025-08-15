@@ -1,105 +1,98 @@
-# go-to-definition-tool README
+# Go To Definition Tool
 
-This is the README for your extension "go-to-definition-tool". After writing up a brief description, we recommend including the following sections.
+A VS Code extension that contributes a language model tool Copilot can call in agent mode to find where a symbol is defined.
 
-## Features
+## What It Does
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+Given a symbol and a file URI, the tool:
 
-For example if there is an image subfolder under your extension project workspace:
+- Finds the first exact occurrence of the symbol in the file (optionally constrained to a line range).
+- Returns where that symbol is defined.
 
-\!\[feature X\]\(images/feature-x.png\)
+Results are returned as:
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- `path:line`
+- `path:start-end` (if the range spans multiple lines)
 
-### Language Model Tool: Go To Definition
+## Why This Tool
 
-This extension contributes a language model tool that Copilot can call in agent mode:
+Navigating with code references is faster and closer to how humans read code than plain text search.
+
+- Reference-first navigation: Follow definitions and references instead of scanning for text matches to reduce noise and speed up understanding.
+- Inspect installed code, not the web: With modules or packages, LLMs may rely on outdated knowledge or external docs. This tool encourages inspecting the actual code in your workspace and installed dependencies so answers match your environment.
+
+## Tool
 
 - Name: `go-to-definition`
-- Reference name: `#goToDefinition`
-- Purpose: Given a symbol and a file URI, finds the first exact occurrence of the symbol within optional line bounds, then returns where that symbol is defined.
+- Reference: `#goToDefinition`
+- Purpose: Resolve a symbol's definition from a given file and optional line bounds.
 
-Use it in chat by referencing the tool:
+## Usage
 
-```text
-#goToDefinition — Find the definition of "foo" in src/index.ts (lines 1–200)
-```
+In Copilot Chat:
 
-Or with parameters:
+- Reference style:
+  - `#goToDefinition: Find the definition of "foo" in src/index.ts (lines 1-200)`
+
+With explicit parameters:
 
 ```json
 {
-    "tool": "#goToDefinition",
-    "arguments": {
-        "symbol": "foo",
-        "uri": "src/index.ts",
-        "startLineNumber": 1,
-        "endLineNumber": 200
-    }
+  "tool": "#goToDefinition",
+  "arguments": {
+    "symbol": "foo",
+    "uri": "src/index.ts",
+    "startLineNumber": 1,
+    "endLineNumber": 200
+  }
 }
 ```
 
 Notes:
 
-- `uri` can be a workspace-relative path (e.g., `src/index.ts`), an absolute path (`/home/user/project/src/index.ts`), or a full URI (`file:///...`).
+- `uri` accepts:
+  - Workspace-relative: `src/index.ts`
+  - Absolute path: `/home/user/project/src/index.ts`
+  - File URI: `file:///...`
 - `startLineNumber` and `endLineNumber` are 1-based and inclusive.
-- Results are shown as `path:line` or `path:start-end` when the range spans multiple lines.
 
-## Requirements
+## Parameters
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- `symbol` (string, required): Exact symbol text to look for.
+- `uri` (string, required): File to search (relative, absolute, or file URI).
+- `startLineNumber` (number, optional): Start line bound (inclusive).
+- `endLineNumber` (number, optional): End line bound (inclusive).
 
-## Extension Settings
+## Examples
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+- Find the definition of a function:
+  - `#goToDefinition — "createServer" in server.ts`
+- Constrain search to the first 200 lines:
+  - `#goToDefinition — "User" in src/models/user.ts (lines 1–200)`
 
-For example:
+Example outputs:
 
-This extension contributes the following settings:
+- `src/index.ts:42`
+- `src/parser.ts:10-14`
 
-- `myExtension.enable`: Enable/disable this extension.
-- `myExtension.thing`: Set to `blah` to do something.
+## Development
 
-## Known Issues
+- Prerequisites: Node.js and npm installed.
+- Setup:
+  - `npm install`
+  - Press F5 in VS Code to launch the Extension Development Host.
+- Test:
+  - In the dev host, open a workspace containing the target files.
+  - Open Copilot Chat (agent mode) and invoke `#goToDefinition` as shown above.
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+## Known Limitations
+
+- Matches the first exact textual occurrence of the symbol before resolving definition.
+- Results depend on language support and available symbols in the workspace.
+- Large files or many definitions may impact performance.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.1.0
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-- [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-- Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-- Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-- Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-- [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-- [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+- Initial tool: `go-to-definition` (`#goToDefinition`) with symbol search, optional line bounds, and definition location output.
