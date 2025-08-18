@@ -70,10 +70,19 @@ Notes:
 - Constrain search to the first 200 lines:
   - `#goToDefinition — "User" in src/models/user.ts (lines 1–200)`
 
-Example outputs:
+Example output:
 
-- `src/index.ts:42`
-- `src/parser.ts:10-14`
+  `connect-redis` from
+
+  ```
+  server.js:2-4
+
+  const session = require('express-session');
+  const RedisStore = require('connect-redis').default;
+  const { createClient } = require('redis');
+  ```
+
+  is defined at node_modules/connect-redis/dist/connect-redis.d.cts:1-46
 
 ## Development
 

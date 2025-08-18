@@ -76,6 +76,20 @@ class GotoDefinitionTool implements vscode.LanguageModelTool<IGotoDefinitionPara
 			]);
 		}
 
+		const symbolLine = position.line;
+		const contextStartLine = Math.max(0, symbolLine - 1) + 1;
+		const contextEndLine = Math.min(doc.lineCount - 1, symbolLine + 1) + 1;
+		const contextLines: string[] = [];
+
+		for (let i = contextStartLine - 1; i <= contextEndLine - 1; i++) {
+			contextLines.push(doc.lineAt(i).text);
+		}
+
+		const contextRange = contextStartLine === contextEndLine
+			? `${contextStartLine}`
+			: `${contextStartLine}-${contextEndLine}`;
+		const contextBlock = `\`\`\`\n${uri}:${contextRange}\n\n${contextLines.join('\n')}\n\`\`\``;
+
 		const defs = (await vscode.commands.executeCommand(
 			'vscode.executeDefinitionProvider',
 			vscode.Uri.parse(uri),
@@ -110,7 +124,7 @@ class GotoDefinitionTool implements vscode.LanguageModelTool<IGotoDefinitionPara
 		});
 
 		return new vscode.LanguageModelToolResult([
-			new vscode.LanguageModelTextPart(`${params.symbol} is defined at ${paths}`)
+			new vscode.LanguageModelTextPart(`\`${params.symbol}\` from\n\n${contextBlock}\n\nis defined at ${paths.join(', ')}`)
 		]);
 	}
 }
