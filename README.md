@@ -125,6 +125,10 @@ Get Document Symbols:
   - File URI: `file:///...`
 - `startLineNumber` and `endLineNumber` are 1-based and inclusive
 
+## Chat Modes
+
+To enable a "Symbol Navigation" chat mode in your project, add a file like `.github/chatmodes/Symbol Navigation.chatmode.md`. This chat mode guides Copilot or other LLMs to use the symbol navigation tools more effectively during conversations.
+
 ## Development
 
 - Prerequisites: Node.js and npm installed.
