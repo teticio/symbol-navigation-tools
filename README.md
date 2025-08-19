@@ -111,11 +111,11 @@ Get Document Symbols:
 >     "definitionEndLineNumber": 194,
 >     "children": [
 >       {
->           // ...
+>
 >       }
 >     ]
 >   },
->   // ...
+>
 > ]
 > ```
 
