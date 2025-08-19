@@ -2,12 +2,27 @@
   "name": "symbol-navigation-tools",
   "displayName": "Symbol Navigation Tools",
   "description": "Tool to enable LLMs to navigate your codebase and modules / packages more effectively.",
+  "publisher": "teticio",
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/teticio/symbol-navigation-tools.git"
+  },
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.102.0"
   },
   "categories": [
     "Other"
+  ],
+  "icon": "icon.png",
+  "keywords": [
+    "copilot",
+    "tool",
+    "symbol",
+    "definition",
+    "module",
+    "package"
   ],
   "activationEvents": [
     "onStartupFinished"
