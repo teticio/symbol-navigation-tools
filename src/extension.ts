@@ -6,14 +6,17 @@ import * as vscode from 'vscode';
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
-		vscode.lm.registerTool('go-to-definition', new GotoDefinitionTool())
+		vscode.lm.registerTool('go-to-definition', new GoToDefinitionTool())
+	);
+	context.subscriptions.push(
+		vscode.lm.registerTool('get-document-symbols', new GetDocumentSymbolsTool())
 	);
 }
 
 // This method is called when your extension is deactivated
 export function deactivate() { }
 
-export interface IGotoDefinitionParameters {
+export interface IGoToDefinitionParameters {
 	symbol: string;
 	uri: string;
 	startLineNumber?: number;
@@ -24,9 +27,9 @@ function escapeRegExp(s: string): string {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-class GotoDefinitionTool implements vscode.LanguageModelTool<IGotoDefinitionParameters> {
+class GoToDefinitionTool implements vscode.LanguageModelTool<IGoToDefinitionParameters> {
 	async prepareInvocation(
-		options: vscode.LanguageModelToolInvocationPrepareOptions<IGotoDefinitionParameters>,
+		options: vscode.LanguageModelToolInvocationPrepareOptions<IGoToDefinitionParameters>,
 		_token: vscode.CancellationToken
 	) {
 		const confirmationMessages = {
@@ -41,7 +44,7 @@ class GotoDefinitionTool implements vscode.LanguageModelTool<IGotoDefinitionPara
 	}
 
 	async invoke(
-		options: vscode.LanguageModelToolInvocationOptions<IGotoDefinitionParameters>,
+		options: vscode.LanguageModelToolInvocationOptions<IGoToDefinitionParameters>,
 		_token: vscode.CancellationToken
 	) {
 		const params = options.input ?? {};
@@ -52,79 +55,221 @@ class GotoDefinitionTool implements vscode.LanguageModelTool<IGotoDefinitionPara
 
 		const uri = params.uri;
 		const doc = await vscode.workspace.openTextDocument(uri);
-		const start = Math.max(1, params.startLineNumber ?? 1) - 1;
-		const end = Math.min(doc.lineCount, params.endLineNumber ?? doc.lineCount) - 1;
+		const startLineNumber = Math.max(1, params.startLineNumber ?? 1) - 1;
+		const endLineNumber = Math.min(doc.lineCount, params.endLineNumber ?? doc.lineCount) - 1;
 		const text = doc.getText();
-		const re = new RegExp(`\\b${escapeRegExp(params.symbol)}\\b`, 'g');
+		const regex = new RegExp(`\\b${escapeRegExp(params.symbol)}\\b`, 'g');
 		let position: vscode.Position | undefined;
-		let m: RegExpExecArray | null;
+		let match: RegExpExecArray | null;
 
-		while ((m = re.exec(text)) !== null) {
-			const pos = doc.positionAt(m.index);
-			if (pos.line >= start && pos.line <= end) {
+		while ((match = regex.exec(text)) !== null) {
+			const pos = doc.positionAt(match.index);
+			if (pos.line >= startLineNumber && pos.line <= endLineNumber) {
 				position = pos;
 				break;
 			}
-			if (re.lastIndex === m.index) {
-				re.lastIndex++;
+			if (regex.lastIndex === match.index) {
+				regex.lastIndex++;
 			}
 		}
 
 		if (!position) {
 			return new vscode.LanguageModelToolResult([
-				new vscode.LanguageModelTextPart(`${params.symbol} not found in ${uri} lines ${start + 1}-${end + 1}`)
+				new vscode.LanguageModelTextPart(`${params.symbol} not found in ${uri} lines ${startLineNumber + 1}-${endLineNumber + 1}`)
 			]);
 		}
 
-		const symbolLine = position.line;
-		const contextStartLine = Math.max(0, symbolLine - 1) + 1;
-		const contextEndLine = Math.min(doc.lineCount - 1, symbolLine + 1) + 1;
+		const symbolLineNumber = position.line;
+		const contextStartLineNumber = Math.max(0, symbolLineNumber - 1) + 1;
+		const contextEndLineNumber = Math.min(doc.lineCount - 1, symbolLineNumber + 1) + 1;
 		const contextLines: string[] = [];
 
-		for (let i = contextStartLine - 1; i <= contextEndLine - 1; i++) {
+		for (let i = contextStartLineNumber - 1; i <= contextEndLineNumber - 1; i++) {
 			contextLines.push(doc.lineAt(i).text);
 		}
 
-		const contextRange = contextStartLine === contextEndLine
-			? `${contextStartLine}`
-			: `${contextStartLine}-${contextEndLine}`;
-		const contextBlock = `\`\`\`\n${uri}:${contextRange}\n\n${contextLines.join('\n')}\n\`\`\``;
+		const contextRange = contextStartLineNumber === contextEndLineNumber
+			? `${contextStartLineNumber}`
+			: `${contextStartLineNumber}-${contextEndLineNumber}`;
+		const contextBlock = `\`\`\`${doc.languageId}\n${uri}:${contextRange}\n\n${contextLines.join('\n')}\n\`\`\``;
 
-		const defs = (await vscode.commands.executeCommand(
+		const definitions = (await vscode.commands.executeCommand(
 			'vscode.executeDefinitionProvider',
 			vscode.Uri.parse(uri),
 			position
 		)) as vscode.Location | vscode.Location[] | vscode.DefinitionLink[] | undefined;
 
-		if (!defs || (Array.isArray(defs) && defs.length === 0)) {
+		if (!definitions || (Array.isArray(definitions) && definitions.length === 0)) {
 			return new vscode.LanguageModelToolResult([
 				new vscode.LanguageModelTextPart(`Definition for ${params.symbol} not found`)
 			]);
 		}
 
-		const defsArray = Array.isArray(defs)
-			? (defs as Array<vscode.Location | vscode.DefinitionLink>)
-			: [defs];
+		const definitionsArray = Array.isArray(definitions)
+			? (definitions as Array<vscode.Location | vscode.DefinitionLink>)
+			: [definitions];
 
-		const paths = defsArray.map((d) => {
-			const isLink = 'targetUri' in (d as vscode.DefinitionLink);
-			const uri = isLink
-				? (d as vscode.DefinitionLink).targetUri
-				: (d as vscode.Location).uri;
-			const range = isLink
-				? (d as vscode.DefinitionLink).targetRange
-				: (d as vscode.Location).range;
-			const startLine = range.start.line + 1;
-			const endLine = range.end.line + 1;
-			const base = uri.scheme === 'file' ? uri.fsPath : uri.toString();
+		const definitionPaths = definitionsArray.map((definition) => {
+			const isDefinitionLink = 'targetUri' in (definition as vscode.DefinitionLink);
+			const definitionUri = isDefinitionLink
+				? (definition as vscode.DefinitionLink).targetUri
+				: (definition as vscode.Location).uri;
+			const range = isDefinitionLink
+				? (definition as vscode.DefinitionLink).targetRange
+				: (definition as vscode.Location).range;
+			const rangeStartLineNumber = range.start.line + 1;
+			const rangeEndLineNumber = range.end.line + 1;
+			const filePath = definitionUri.scheme === 'file' ? definitionUri.fsPath : definitionUri.toString();
 
-			return startLine === endLine
-				? `${base}:${startLine}`
-				: `${base}:${startLine}-${endLine}`;
+			return rangeStartLineNumber === rangeEndLineNumber
+				? `${filePath}:${rangeStartLineNumber}`
+				: `${filePath}:${rangeStartLineNumber}-${rangeEndLineNumber}`;
 		});
 
 		return new vscode.LanguageModelToolResult([
-			new vscode.LanguageModelTextPart(`\`${params.symbol}\` from\n\n${contextBlock}\n\nis defined at ${paths.join(', ')}`)
+			new vscode.LanguageModelTextPart(`\`${params.symbol}\` from\n\n${contextBlock}\n\nis defined at ${definitionPaths.join(', ')}`)
+		]);
+	}
+}
+
+// Based on https://github.com/juehang/vscode-mcp-server
+function symbolKindToString(kind: vscode.SymbolKind): string {
+	switch (kind) {
+		case vscode.SymbolKind.File: return 'File';
+		case vscode.SymbolKind.Module: return 'Module';
+		case vscode.SymbolKind.Namespace: return 'Namespace';
+		case vscode.SymbolKind.Package: return 'Package';
+		case vscode.SymbolKind.Class: return 'Class';
+		case vscode.SymbolKind.Method: return 'Method';
+		case vscode.SymbolKind.Property: return 'Property';
+		case vscode.SymbolKind.Field: return 'Field';
+		case vscode.SymbolKind.Constructor: return 'Constructor';
+		case vscode.SymbolKind.Enum: return 'Enum';
+		case vscode.SymbolKind.Interface: return 'Interface';
+		case vscode.SymbolKind.Function: return 'Function';
+		case vscode.SymbolKind.Variable: return 'Variable';
+		case vscode.SymbolKind.Constant: return 'Constant';
+		case vscode.SymbolKind.String: return 'String';
+		case vscode.SymbolKind.Number: return 'Number';
+		case vscode.SymbolKind.Boolean: return 'Boolean';
+		case vscode.SymbolKind.Array: return 'Array';
+		case vscode.SymbolKind.Object: return 'Object';
+		case vscode.SymbolKind.Key: return 'Key';
+		case vscode.SymbolKind.Null: return 'Null';
+		case vscode.SymbolKind.EnumMember: return 'EnumMember';
+		case vscode.SymbolKind.Struct: return 'Struct';
+		case vscode.SymbolKind.Event: return 'Event';
+		case vscode.SymbolKind.Operator: return 'Operator';
+		case vscode.SymbolKind.TypeParameter: return 'TypeParameter';
+		default: return 'Unknown';
+	}
+}
+
+// Based on https://github.com/juehang/vscode-mcp-server
+export async function getDocumentSymbols(
+	uri: vscode.Uri,
+	maxDepth?: number
+): Promise<Array<{
+	name: string;
+	detail?: string;
+	kind: string;
+	locationLineNumber: number;
+	definitionStartLineNumber: number;
+	definitionEndLineNumber: number;
+	depth: number;
+	children?: Array<any>;
+}>> {
+	console.info(`[getDocumentSymbols] Getting symbols for ${uri.toString()}, maxDepth: ${maxDepth}`);
+
+	try {
+		// Execute the document symbol provider
+		const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+			'vscode.executeDocumentSymbolProvider',
+			uri
+		) || [];
+
+		console.info(`[getDocumentSymbols] Found ${symbols.length} top-level symbols`);
+
+		const kindCounts: Record<string, number> = {};
+
+		// Recursive function to process symbols and their children
+		function processSymbols(symbols: vscode.DocumentSymbol[], depth: number = 0): Array<any> {
+			const processedSymbols: Array<any> = [];
+
+			for (const symbol of symbols) {
+				// Skip if max depth exceeded
+				if (maxDepth !== undefined && depth > maxDepth) {
+					continue;
+				}
+
+				const kindString = symbolKindToString(symbol.kind);
+				kindCounts[kindString] = (kindCounts[kindString] || 0) + 1;
+
+				const processedSymbol: any = {
+					name: symbol.name,
+					detail: symbol.detail || undefined,
+					kind: kindString,
+					locationLineNumber: symbol.selectionRange.start.line + 1,
+					definitionStartLineNumber: symbol.range.start.line + 1,
+					definitionEndLineNumber: symbol.range.end.line + 1
+				};
+
+				// Recursively process children
+				if (symbol.children && symbol.children.length > 0) {
+					processedSymbol.children = processSymbols(symbol.children, depth + 1);
+				}
+
+				processedSymbols.push(processedSymbol);
+			}
+
+			return processedSymbols;
+		}
+
+		return processSymbols(symbols);
+	} catch (error) {
+		console.error(`[getDocumentSymbols] Error: ${error instanceof Error ? error.message : String(error)}`);
+		throw error;
+	}
+}
+
+export interface IGetDocumentSymbols {
+	uri: string;
+	maxDepth?: number;
+}
+
+class GetDocumentSymbolsTool implements vscode.LanguageModelTool<IGetDocumentSymbols> {
+	async prepareInvocation(
+		options: vscode.LanguageModelToolInvocationPrepareOptions<IGetDocumentSymbols>,
+		_token: vscode.CancellationToken
+	) {
+		const confirmationMessages = {
+			title: 'Get document symbols',
+			message: new vscode.MarkdownString(`Get document symbols for ${options.input.uri}?`)
+		};
+
+		return {
+			invocationMessage: `Getting document symbols for ${options.input.uri}`,
+			confirmationMessages
+		};
+	}
+
+	async invoke(
+		options: vscode.LanguageModelToolInvocationOptions<IGetDocumentSymbols>,
+		_token: vscode.CancellationToken
+	) {
+		const params = options.input ?? {};
+
+		const uri = params.uri;
+		const maxDepth = params.maxDepth;
+
+		if (!uri) {
+			throw new Error('Invalid parameters. URI is required.');
+		}
+
+		const documentSymbols = await getDocumentSymbols(vscode.Uri.parse(uri), maxDepth);
+
+		return new vscode.LanguageModelToolResult([
+			new vscode.LanguageModelTextPart(`Symbols for ${uri}:\n\n\`\`\`json\n${JSON.stringify(documentSymbols, null, 2)}\n\`\`\``)
 		]);
 	}
 }

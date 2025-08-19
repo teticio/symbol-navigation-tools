@@ -1,6 +1,6 @@
 {
-  "name": "go-to-definition-tool",
-  "displayName": "Go To Definition Tool",
+  "name": "symbol-navigation-tools",
+  "displayName": "Symbol Navigation Tools",
   "description": "Tool to enable LLMs to navigate your codebase and modules / packages more effectively.",
   "version": "0.0.1",
   "engines": {
@@ -18,7 +18,9 @@
       {
         "name": "go-to-definition",
         "tags": [
-          "symbol", "module", "package"
+          "symbol",
+          "module",
+          "package"
         ],
         "toolReferenceName": "goToDefinition",
         "displayName": "Go To Definition",
@@ -35,7 +37,7 @@
             },
             "uri": {
               "type": "string",
-              "description": "The VSCode URI of the document where the symbol is defined (e.g., `src/index.ts`)."
+              "description": "The VSCode URI of the document where the symbol is defined (e.g., absolute path to file)."
             },
             "startLineNumber": {
               "type": "number",
@@ -45,6 +47,34 @@
             "endLineNumber": {
               "type": "number",
               "description": "The ending line number of the context (1-based).",
+              "optional": true
+            }
+          }
+        }
+      },
+      {
+        "name": "get-document-symbols",
+        "tags": [
+          "symbol",
+          "module",
+          "package"
+        ],
+        "toolReferenceName": "getDocumentSymbols",
+        "displayName": "Get Document Symbols",
+        "modelDescription": "Retrieve all document symbols in a file.",
+        "userDescription": "Get a nested list of all symbols in the current document.",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(files)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "uri": {
+              "type": "string",
+              "description": "The VSCode URI of the document for which to retrieve symbols (e.g., absolute path to file)."
+            },
+            "maxDepth": {
+              "type": "number",
+              "description": "The maximum depth of symbol nesting to retrieve.",
               "optional": true
             }
           }

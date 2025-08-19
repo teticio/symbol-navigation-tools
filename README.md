@@ -1,88 +1,129 @@
-# Go To Definition Tool
+# Symbol Navigation Tools
 
-A VS Code extension that contributes a language model tool Copilot can call in agent mode to find where a symbol is defined.
+A VS Code extension that contributes language model tools Copilot can call in agent mode to navigate and understand code structure.
 
 ## What It Does
 
-Given a symbol and a file URI, the tool:
+This extension provides two complementary tools for code navigation:
 
-- Finds the first exact occurrence of the symbol in the file (optionally constrained to a line range).
-- Returns where that symbol is defined.
+1. **Go To Definition** - Find where a specific symbol is defined
+2. **Get Document Symbols** - Get an overview of all symbols in a file
 
-Results are returned as:
-
-- `path:line`
-- `path:start-end` (if the range spans multiple lines)
-
-## Why This Tool
+## Why These Tools
 
 Navigating with code references is faster and closer to how humans read code than plain text search.
 
-- Reference-first navigation: Follow definitions and references instead of scanning for text matches to reduce noise and speed up understanding.
-- Inspect installed code, not the web: With modules or packages, LLMs may rely on outdated knowledge or external docs. This tool encourages inspecting the actual code in your workspace and installed dependencies so answers match your environment.
+- **Reference-first navigation**: Follow definitions and references instead of scanning for text matches to reduce noise and speed up understanding
+- **Structural overview**: Quickly understand file organization and available symbols
+- **Inspect installed code, not the web**: With modules or packages, LLMs may rely on outdated knowledge or external docs. These tools encourage inspecting the actual code in your workspace and installed dependencies so answers match your environment
 
-## Tool
+## Tools
 
-- Name: `go-to-definition`
-- Reference: `#goToDefinition`
-- Purpose: Resolve a symbol's definition from a given file and optional line bounds.
+### 1. Go To Definition (`#goToDefinition`)
+
+Given a symbol and a file URI, the tool:
+
+- Finds the first exact occurrence of the symbol in the file (optionally constrained to a line range)
+- Returns where that symbol is defined
+
+Results are returned as:
+- `path:line`
+- `path:start-end` (if the range spans multiple lines)
+
+**Parameters:**
+- `symbol` (string, required): Exact symbol text to look for
+- `uri` (string, required): File to search (absolute or file URI)
+- `startLineNumber` (number, optional): Start line bound (inclusive)
+- `endLineNumber` (number, optional): End line bound (inclusive)
+
+### 2. Get Document Symbols (`#getDocumentSymbols`)
+
+Retrieves all symbols (functions, classes, variables, etc.) from a file to provide a structural overview.
+
+**Parameters:**
+- `uri` (string, required): File to analyze (absolute or file URI)
 
 ## Usage
 
 In Copilot Chat:
 
-- Reference style:
-  - `#goToDefinition: Find the definition of "foo" in src/index.ts (lines 1-200)`
+**Reference style:**
+- `#goToDefinition: Find the definition of "createServer" in server.ts`
+- `#goToDefinition: Find the definition of "User" in src/models/user.ts (lines 1-200)`
+- `#getDocumentSymbols: Get all symbols from src/models/user.ts`
+- `#getDocumentSymbols: Show structure of src/components/Button.tsx`
 
-With explicit parameters:
+**With explicit parameters:**
 
 ```json
 {
   "tool": "#goToDefinition",
   "arguments": {
     "symbol": "foo",
-    "uri": "src/index.ts",
+    "uri": "/home/user/project/src/index.ts",
     "startLineNumber": 1,
     "endLineNumber": 200
   }
 }
 ```
 
-Notes:
+```json
+{
+  "tool": "#getDocumentSymbols",
+  "arguments": {
+    "uri": "/home/user/project/src/app.py"
+  }
+}
+```
 
+**Example Outputs:**
+
+Go To Definition:
+> `connect-redis` from
+>
+> ```javascript
+> /home/user/project/server.js:2-4
+>
+> const session = require('express-session');
+> const RedisStore = require('connect-redis').default;
+> const { createClient } = require('redis');
+> ```
+>
+> is defined at `/home/user/project/node_modules/connect-redis/dist/connect-redis.d.cts:1-46`
+
+Get Document Symbols:
+> Symbols for `/home/user/pytorch/torch/optim/adamw.py`:
+>
+> ```json
+> [
+>   {
+>     "name": "__all__",
+>     "kind": "Variable",
+>     "locationLineNum": 8,
+>     "definitionStartLineNumber": 8,
+>     "definitionEndLineNumber": 8
+>   },
+>   {
+>     "name": "AdamW",
+>     "kind": "Class",
+>     "locationLineNum": 11,
+>     "definitionStartLineNumber": 11,
+>     "definitionEndLineNumber": 194,
+>     "children": [
+>       {
+>           // ...
+>       }
+>     ]
+>   },
+>   // ...
+> ]
+> ```
+
+**Notes:**
 - `uri` accepts:
-  - Workspace-relative: `src/index.ts`
   - Absolute path: `/home/user/project/src/index.ts`
   - File URI: `file:///...`
-- `startLineNumber` and `endLineNumber` are 1-based and inclusive.
-
-## Parameters
-
-- `symbol` (string, required): Exact symbol text to look for.
-- `uri` (string, required): File to search (relative, absolute, or file URI).
-- `startLineNumber` (number, optional): Start line bound (inclusive).
-- `endLineNumber` (number, optional): End line bound (inclusive).
-
-## Examples
-
-- Find the definition of a function:
-  - `#goToDefinition — "createServer" in server.ts`
-- Constrain search to the first 200 lines:
-  - `#goToDefinition — "User" in src/models/user.ts (lines 1–200)`
-
-Example output:
-
-  `connect-redis` from
-
-  ```
-  server.js:2-4
-
-  const session = require('express-session');
-  const RedisStore = require('connect-redis').default;
-  const { createClient } = require('redis');
-  ```
-
-  is defined at node_modules/connect-redis/dist/connect-redis.d.cts:1-46
+- `startLineNumber` and `endLineNumber` are 1-based and inclusive
 
 ## Development
 
@@ -92,7 +133,7 @@ Example output:
   - Press F5 in VS Code to launch the Extension Development Host.
 - Test:
   - In the dev host, open a workspace containing the target files.
-  - Open Copilot Chat (agent mode) and invoke `#goToDefinition` as shown above.
+  - Open Copilot Chat (agent mode) and invoke `#goToDefinition` or `#getDocumentSymbols` as shown above.
 
 ## Known Limitations
 
