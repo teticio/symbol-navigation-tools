@@ -35,16 +35,16 @@
             },
             "uri": {
               "type": "string",
-              "description": "The URI of the document to search."
+              "description": "The VSCode URI of the document where the symbol is defined (e.g., `src/index.ts`)."
             },
             "startLineNumber": {
               "type": "number",
-              "description": "The starting line number to search (1-based).",
+              "description": "The starting line number of the context (1-based).",
               "optional": true
             },
             "endLineNumber": {
               "type": "number",
-              "description": "The ending line number to search (1-based).",
+              "description": "The ending line number of the context (1-based).",
               "optional": true
             }
           }
