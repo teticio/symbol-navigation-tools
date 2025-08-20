@@ -1,14 +1,14 @@
 {
   "name": "symbol-navigation-tools",
   "displayName": "Symbol Navigation Tools",
-  "description": "Tool to enable LLMs to navigate your codebase and modules / packages more effectively.",
+  "description": "Tool to enable LLMs to navigate your codebase and modules/packages more effectively.",
   "publisher": "teticio",
   "license": "BSD-3-Clause",
   "repository": {
     "type": "git",
     "url": "https://github.com/teticio/symbol-navigation-tools.git"
   },
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.102.0"
   },
@@ -21,6 +21,7 @@
     "tool",
     "symbol",
     "definition",
+    "docstring",
     "module",
     "package"
   ],
@@ -39,8 +40,8 @@
         ],
         "toolReferenceName": "goToDefinition",
         "displayName": "Go To Definition",
-        "modelDescription": "Navigate to the definition of a symbol in the codebase and installed modules / packages.",
-        "userDescription": "Find the definition of a symbol in the codebase and installed modules / packages.",
+        "modelDescription": "Use go-to-definition whenever you need to find where a symbol (such as a function, class, method, or variable) is defined in the codebase or in installed modules/packages. This tool is far more precise and reliable than text or semantic search for understanding code relationships, following references, and exploring unfamiliar code. It is especially valuable for inspecting the actual implementation of dependencies, verifying configuration options, and learning about features directly from the code that is running in the user's environment. Prefer go-to-definition over generic search when you have a specific symbol of interest.",
+        "userDescription": "Find where a symbol is defined in your codebase or dependencies.",
         "canBeReferencedInPrompt": true,
         "icon": "$(files)",
         "inputSchema": {
@@ -72,12 +73,13 @@
         "tags": [
           "symbol",
           "module",
-          "package"
+          "package",
+          "docstring"
         ],
         "toolReferenceName": "getDocumentSymbols",
         "displayName": "Get Document Symbols",
-        "modelDescription": "Retrieve all document symbols in a file.",
-        "userDescription": "Get a nested list of all symbols in the current document.",
+        "modelDescription": "Use get-document-symbols to quickly obtain a structured, hierarchical overview of all symbols (classes, functions, methods, variables, etc.) defined in a file, including their nesting and line number ranges. This tool also retrieves hover information such as docstrings, comments, and type signatures, making it ideal for understanding the organization, purpose, and documentation of code at a glance. Prefer get-document-symbols over reading raw file contents or searching for symbol names, especially for large files or when you need to understand code structure and available APIs.",
+        "userDescription": "List all symbols and their structure in a file, with doc info.",
         "canBeReferencedInPrompt": true,
         "icon": "$(files)",
         "inputSchema": {

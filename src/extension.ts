@@ -166,6 +166,50 @@ function symbolKindToString(kind: vscode.SymbolKind): string {
 }
 
 // Based on https://github.com/juehang/vscode-mcp-server
+function processHoverContent(content: any): string {
+	if (typeof content === 'string') {
+		return content;
+	} else if (content && typeof content === 'object' && 'value' in content) {
+		return content.value;
+	}
+	return String(content);
+}
+
+// Based on https://github.com/juehang/vscode-mcp-server
+export async function getSymbolHoverInfo(
+	uri: vscode.Uri,
+	position: vscode.Position
+): Promise<string> {
+	console.info(`[getSymbolHoverInfo] Getting hover info for ${uri.toString()} at position (${position.line},${position.character})`);
+
+	try {
+		// Execute the hover provider
+		const commandResult = await vscode.commands.executeCommand<vscode.Hover[]>(
+			'vscode.executeHoverProvider',
+			uri,
+			position
+		) || [];
+
+		console.info(`[getSymbolHoverInfo] Found ${commandResult.length} hover results`);
+
+		// Map the hover results to a more friendly format
+		const contents: string[] = [];
+		for (const hover of commandResult) {
+			if (Array.isArray(hover.contents)) {
+				contents.push(...hover.contents.map(processHoverContent));
+			} else if (hover.contents) {
+				contents.push(processHoverContent(hover.contents));
+			}
+		}
+
+		return contents.join('\n');
+	} catch (error) {
+		console.error(`[getSymbolHoverInfo] Error: ${error instanceof Error ? error.message : String(error)}`);
+		throw error;
+	}
+}
+
+// Based on https://github.com/juehang/vscode-mcp-server
 export async function getDocumentSymbols(
 	uri: vscode.Uri,
 	maxDepth?: number
@@ -193,7 +237,7 @@ export async function getDocumentSymbols(
 		const kindCounts: Record<string, number> = {};
 
 		// Recursive function to process symbols and their children
-		function processSymbols(symbols: vscode.DocumentSymbol[], depth: number = 0): Array<any> {
+		async function processSymbols(symbols: vscode.DocumentSymbol[], depth: number = 0): Promise<Array<any>> {
 			const processedSymbols: Array<any> = [];
 
 			for (const symbol of symbols) {
@@ -203,12 +247,15 @@ export async function getDocumentSymbols(
 				}
 
 				const kindString = symbolKindToString(symbol.kind);
+				const position = new vscode.Position(symbol.selectionRange.start.line, symbol.selectionRange.start.character);
+
 				kindCounts[kindString] = (kindCounts[kindString] || 0) + 1;
 
 				const processedSymbol: any = {
 					name: symbol.name,
 					detail: symbol.detail || undefined,
 					kind: kindString,
+					hoverInformation: await getSymbolHoverInfo(uri, position),
 					locationLineNumber: symbol.selectionRange.start.line + 1,
 					definitionStartLineNumber: symbol.range.start.line + 1,
 					definitionEndLineNumber: symbol.range.end.line + 1

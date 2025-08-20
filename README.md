@@ -40,6 +40,8 @@ Results are returned as:
 
 Retrieves all symbols (functions, classes, variables, etc.) from a file to provide a structural overview.
 
+**Also retrieves hover information for each symbol** (such as docstrings, comments, or type/type signature information, depending on language support).
+
 **Parameters:**
 - `uri` (string, required): File to analyze (absolute or file URI)
 
@@ -99,6 +101,7 @@ Get Document Symbols:
 >   {
 >     "name": "__all__",
 >     "kind": "Variable",
+>     "hoverInformation": "...",
 >     "locationLineNum": 8,
 >     "definitionStartLineNumber": 8,
 >     "definitionEndLineNumber": 8
@@ -106,6 +109,7 @@ Get Document Symbols:
 >   {
 >     "name": "AdamW",
 >     "kind": "Class",
+>     "hoverInformation": "...",
 >     "locationLineNum": 11,
 >     "definitionStartLineNumber": 11,
 >     "definitionEndLineNumber": 194,
@@ -147,6 +151,7 @@ To enable a "Symbol Navigation" chat mode in your project, add a file like `.git
 
 ## Release Notes
 
-### 0.1.0
+### 0.0.2
 
-- Initial tool: `go-to-definition` (`#goToDefinition`) with symbol search, optional line bounds, and definition location output.
+- Added `go-to-definition` tool (`#goToDefinition`) for finding symbol definitions in codebase and dependencies.
+- Added `get-document-symbols` tool (`#getDocumentSymbols`) to retrieve all symbols in a file, including hover information (docstrings, comments, type signatures) for each symbol.
